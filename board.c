@@ -6,7 +6,6 @@
 #include "board.h"
 
 
-
 void show(const void *self) {
     Board *b = (Board *) self;
     printf("\033[H");
@@ -52,13 +51,12 @@ Board *newBoard(const unsigned int w, const unsigned int h) {
     b->h = h;
     double *newField = calloc(w * h, sizeof(double));
     double *currentField = calloc(w * h, sizeof(double));
-    for (size_t i = 0; i < h * w; i++) {
-        currentField[i] = (rand() < RAND_MAX / 5) ? 1 : 0; ///< init domain randomly
-    }
     for (size_t y = 0; y < h; y++) {
         for (size_t x = 0; x < w; x++) {
             if (!((x > 0) && (x < w - 1) && (y > 0) && (y < h - 1)))
                 currentField[calcIndex(w, x, y)] = 0;
+            else
+                currentField[calcIndex(w, x, y)] = (rand() < RAND_MAX / 5) ? 1 : 0; ///< init domain randomly
         }
     }
     b->currentField = currentField;
