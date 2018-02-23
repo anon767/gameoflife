@@ -18,9 +18,9 @@ void game(Board *board) {
     for (size_t t = 0; t < TimeSteps; t++) {
         board->show(board);
         memcpy(board->newField, board->currentField, board->w * board->h * sizeof(double));
+        writeVTK2(t, board->currentField, "gol", board->w, board->h);
 #pragma omp parallel num_threads(numthreads)
         {
-            writeVTK2(t, board->currentField, "gol", board->w, board->h);
             int i = omp_get_thread_num();
             board->evolve(board, 0, (board->h / numthreads) * i, board->w,
                           (board->h / numthreads) * (i + 1));
