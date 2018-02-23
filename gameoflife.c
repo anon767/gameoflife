@@ -7,7 +7,6 @@
 #include <omp.h>
 #include "board.h"
 #include "vtkwrite.h"
-#include <math.h>
 
 const unsigned int TimeSteps = 500;
 
@@ -19,15 +18,17 @@ void game(Board *board) {
     for (size_t t = 0; t < TimeSteps; t++) {
         board->show(board);
         memcpy(board->newField, board->currentField, board->w * board->h * sizeof(double));
-#pragma omp parallel for num_threads(numthreads)
-        for (unsigned int i = 0; i < numthreads; i++) {
-            board->evolve(board, 0, (unsigned int) floor((double) (board->h / numthreads) * i), board->w,
-                          (unsigned int) floor((double) (board->h / numthreads) * (i + 1)));
+#pragma omp parallel num_threads(numthreads)
+        {
+            writeVTK2(t, board->currentField, "gol", board->w, board->h);
+            int i = omp_get_thread_num();
+            board->evolve(board, 0, (board->h / numthreads) * i, board->w,
+                          (board->h / numthreads) * (i + 1));
             printf("%d thread, starth %d ,endh %d \n", omp_get_thread_num(),
-                   (unsigned int) floor((double) (board->h / numthreads) * i),
-                   (unsigned int) floor((double) (board->h / numthreads) * (i + 1)));
+                   (board->h / numthreads) * i,
+                   (board->h / numthreads) * (i + 1));
         }
-        //writeVTK2(t, board->currentField, "gol", board->w, board->h);
+
 #pragma omp barrier
         printf("%ld timestep\n", t);
         usleep(100000);
