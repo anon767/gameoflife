@@ -11,3 +11,14 @@ endif()
 set(SOURCE_FILES board.h board.c gameoflife.c vtkwrite.c vtkwrite.h)
 add_executable(gameoflife ${SOURCE_FILES} board.h board.c gameoflife.c)
 target_link_libraries(gameoflife m)
+target_link_libraries(gameoflife ${MPI_LIBRARIES})
+
+if(MPI_COMPILE_FLAGS)
+    set_target_properties(hello PROPERTIES
+            COMPILE_FLAGS "${MPI_COMPILE_FLAGS}")
+endif()
+
+if(MPI_LINK_FLAGS)
+    set_target_properties(hello PROPERTIES
+            LINK_FLAGS "${MPI_LINK_FLAGS}")
+endif()
