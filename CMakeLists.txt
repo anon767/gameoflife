@@ -8,8 +8,8 @@ if (OPENMP_FOUND)
     set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
-set(SOURCE_FILES board.h board.c gameoflife.c vtkwrite.c vtkwrite.h)
-add_executable(gameoflife ${SOURCE_FILES} board.h board.c gameoflife.c)
+set(SOURCE_FILES gameoflife.c)
+add_executable(gameoflife ${SOURCE_FILES} gameoflife.c)
 target_link_libraries(gameoflife m)
 target_link_libraries(gameoflife ${MPI_LIBRARIES})
 
