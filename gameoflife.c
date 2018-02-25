@@ -148,7 +148,7 @@ void game(const unsigned w, const unsigned h, const unsigned int procID, const u
 
             memcpy(currentfield, newfield, w * h * sizeof(double));
             show(currentfield, w, h);
-            usleep(200000);
+            usleep(100000);
         } else {
             double *myField = calloc(segmentSize, sizeof(double));
             double *tempmynewfield = calloc(segmentSize, sizeof(double));
