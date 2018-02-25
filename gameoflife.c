@@ -12,6 +12,7 @@
 
 #define calcIndex(width, x, y)  ((y)*(width) + (x))
 #define MESSAGE_INIT 0
+#define MESSAGE_SEGMENTSEND 1
 
 long TimeSteps = 500;
 
@@ -120,48 +121,43 @@ void game(const unsigned w, const unsigned h, const unsigned int procID, const u
     double *currentfield = calloc(w * h, sizeof(double));
     double *newfield = calloc(w * h, sizeof(double));
     filling(currentfield, w, h);
+    MPI_Status status;
+
     MPI_Comm comm = setUpCommunicator();
 
-    int segmentSize = ((h) / procNum) * w;
-    for (unsigned int t = 0; t < TimeSteps; t++) {
+    int segmentSize = (w * h) / (procNum - 1);
 
+
+    for (unsigned int t = 0; t < TimeSteps; t++) {
 
         if (procID == 0) {
 
-            void *sendbuf;
-            MPI_Status status;
-            int *rcounts = malloc(procNum * sizeof(int));
-            for (unsigned int i = 0; i < procNum; i++) {
-                rcounts[i] = w;
-            }
 
             for (unsigned int i = 1; i < procNum; i++) {
                 double *segment = malloc(segmentSize * sizeof(double));
-                memcpy(segment, currentfield + segmentSize * i, segmentSize);
-                MPI_Send(&(segment[calcIndex(w, 0, 0)]), segmentSize, MPI_DOUBLE, i, MESSAGE_INIT, comm);
+                memcpy(segment, currentfield + segmentSize * (i - 1), segmentSize * sizeof(double));
+                MPI_Send(segment, segmentSize, MPI_DOUBLE, i, MESSAGE_INIT, comm);
             }
-            double *myField = calloc(segmentSize, sizeof(double));
-            double *tempmynewfield = calloc(segmentSize, sizeof(double));
-            //MPI_Recv(myField, segmentSize, MPI_DOUBLE, 0, MESSAGE_INIT, comm, &status);
 
-            evolve(myField, tempmynewfield, 0, 0, w, h / procNum);
 
-            MPI_Gather(tempmynewfield, w, MPI_DOUBLE, newfield, w,
-                       MPI_DOUBLE, 0,
-                       comm);
-            memcpy(newfield, currentfield, w * h * sizeof(double));
-           // show(currentfield, w, h);
+            for (int i = 1; i < procNum; i++) {
+                MPI_Recv(newfield + segmentSize * (i - 1), segmentSize, MPI_DOUBLE, i,
+                         MESSAGE_SEGMENTSEND,
+                         comm, &status);
+            }
+
+            memcpy(currentfield, newfield, w * h * sizeof(double));
+            show(currentfield, w, h);
             usleep(200000);
         } else {
             double *myField = calloc(segmentSize, sizeof(double));
-            double *newfield = calloc(segmentSize, sizeof(double));
-            void *recvbuf;
+            double *tempmynewfield = calloc(segmentSize, sizeof(double));
             MPI_Status status;
             MPI_Recv(myField, segmentSize, MPI_DOUBLE, 0, MESSAGE_INIT, comm, &status);
-            printf("received");
-            evolve(myField, newfield, 0, 0, w, h / procNum);
-            MPI_Gather(newfield, w, MPI_DOUBLE, recvbuf, procNum, MPI_DOUBLE,
-                       0, comm);
+
+            evolve(myField, tempmynewfield, 0, 0, w, h / (procNum - 1));
+
+            MPI_Send(&tempmynewfield[calcIndex(w, 0, 0)], segmentSize, MPI_DOUBLE, 0, MESSAGE_SEGMENTSEND, comm);
         }
 
 
@@ -196,11 +192,14 @@ int main(int c, char **v) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if (procID == 0)
         printf("initialized with %d procs\n", size);
+
+
     unsigned int w = 0, h = 0;
     if (c > 1) w = atoi(v[1]);
     if (c > 2) h = atoi(v[2]);
-    if (w <= 0) w = 40;
-    if (h <= 0) h = 40;
+    if (w <= 0) w = 30;
+    if (h <= 0) h = 30;
+
     game(w, h, procID, size);
     MPI_Finalize();
     return 0;
