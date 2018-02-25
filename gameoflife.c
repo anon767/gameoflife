@@ -5,10 +5,8 @@
 #include <unistd.h>
 
 #include <string.h>
-#include <stdbool.h>
-#include <math.h>
-#include <sys/time.h>
 #include <mpi.h>
+#include <assert.h>
 
 #define calcIndex(width, x, y)  ((y)*(width) + (x))
 #define MESSAGE_INIT 0
@@ -152,7 +150,6 @@ void game(const unsigned w, const unsigned h, const unsigned int procID, const u
         } else {
             double *myField = calloc(segmentSize, sizeof(double));
             double *tempmynewfield = calloc(segmentSize, sizeof(double));
-            MPI_Status status;
             MPI_Recv(myField, segmentSize, MPI_DOUBLE, 0, MESSAGE_INIT, comm, &status);
 
             evolve(myField, tempmynewfield, 0, 0, w, h / (procNum - 1));
@@ -167,20 +164,11 @@ void game(const unsigned w, const unsigned h, const unsigned int procID, const u
 
 
 
-/**        writeVTK2(t, currentfield, "gol", w, h);
-
-
-
-    usleep(100000);
-    //SWAP
-    double *temp = currentfield;
-    currentfield = newfield;
-    newfield = temp;
-
+//       writeVTK2(t, currentfield, "gol", w, h);
 
     free(currentfield);
     free(newfield);
-    **/
+
 
 }
 
@@ -192,7 +180,7 @@ int main(int c, char **v) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if (procID == 0)
         printf("initialized with %d procs\n", size);
-
+    assert(size > 1);
 
     unsigned int w = 0, h = 0;
     if (c > 1) w = atoi(v[1]);
