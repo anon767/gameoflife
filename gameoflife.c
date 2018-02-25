@@ -42,7 +42,7 @@ void writeVTK2(const size_t timestep, const double *data, const char prefix[1024
     fprintf(fp, "<?xml version=\"1.0\"?>\n");
     fprintf(fp, "<VTKFile type=\"ImageData\" version=\"0.1\" byte_order=\"LittleEndian\" header_type=\"UInt64\">\n");
     fprintf(fp, "<ImageData WholeExtent=\"%d %d %d %d %d %d\" Origin=\"0 0 0\" Spacing=\"%le %le %le\">\n", offsetX,
-            offsetX + w - 1, offsetY, offsetY + h - 1, 0, 0, deltax, deltax, 0.0);
+            offsetX + w - 1, offsetY, offsetY + h - 1, 0, 0, deltax, deltay, 0.0);
     fprintf(fp, "<CellData Scalars=\"%s\">\n", prefix);
     fprintf(fp, "<DataArray type=\"Float32\" Name=\"%s\" format=\"appended\" offset=\"0\"/>\n", prefix);
     fprintf(fp, "</CellData>\n");
@@ -180,7 +180,10 @@ int main(int c, char **v) {
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     if (procID == 0)
         printf("initialized with %d procs\n", size);
-    assert(size > 1);
+    if (size <= 1) {
+        printf("you should start with more than one process\n");
+        exit(0);
+    }
 
     unsigned int w = 0, h = 0;
     if (c > 1) w = atoi(v[1]);
