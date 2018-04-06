@@ -155,11 +155,12 @@ void game(const unsigned w, const unsigned h, const unsigned int procID, const u
         } else {
             int modifierSize = (procID > 1) ? 2 * w : 0;
             int modifierSendSize = (procID > 1 ) ? w : 0;
+            int modifierOffset = (procID > 1 ) ? 1 : 0;
             double *myField = calloc(modifierSize + segmentSize, sizeof(double));
             double *tempmynewfield = calloc(modifierSize + segmentSize, sizeof(double));
             MPI_Recv(myField, modifierSize + segmentSize, MPI_DOUBLE, 0, MESSAGE_INIT, comm, &status);
 
-            evolve(myField, tempmynewfield, 0, 1, w, 1+h / (procNum - 1), procID, procNum);
+            evolve(myField, tempmynewfield, 0, 1, w, modifierOffset+h / (procNum - 1), procID, procNum);
 
             MPI_Send(tempmynewfield + modifierSendSize,  modifierSendSize + segmentSize, MPI_DOUBLE, 0, MESSAGE_SEGMENTSEND, comm);
         }
