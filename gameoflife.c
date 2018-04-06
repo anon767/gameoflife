@@ -75,10 +75,10 @@ void show(const double *currentfield, int w, int h) {
 
 void
 evolve(const double *currentfield, double *newfield, const unsigned startw, const unsigned starth, const unsigned w,
-       const unsigned h) {
+       const unsigned h, int procID, int procNum) {
     for (unsigned y = starth; y < h; y++) {
         for (unsigned x = startw; x < w; x++) {
-            if (!((x > 0) && (x < w - 1) && (y > 0) && (y < h - 1)))
+            if (!((x > 0) && (x < w - 1)))
                 continue; //skip edges
             double sum = currentfield[calcIndex(w, x - 1, y - 1)]
                          + currentfield[calcIndex(w, x, y - 1)]
@@ -132,29 +132,36 @@ void game(const unsigned w, const unsigned h, const unsigned int procID, const u
 
 
             for (unsigned int i = 1; i < procNum; i++) {
-                double *segment = malloc(segmentSize * sizeof(double));
-                memcpy(segment, currentfield + segmentSize * (i - 1), segmentSize * sizeof(double));
-                MPI_Send(segment, segmentSize, MPI_DOUBLE, i, MESSAGE_INIT, comm);
+                int modifierSize = (i > 1) ? 2 * w : 0; //send n+1 if procNum not the last
+                double *segment = malloc((modifierSize + segmentSize) * sizeof(double));
+                memcpy(segment, currentfield + (segmentSize) * (i - 1) - modifierSize, (modifierSize + segmentSize) * sizeof(double));
+                MPI_Send(segment, modifierSize + segmentSize, MPI_DOUBLE, i, MESSAGE_INIT, comm);
             }
 
 
             for (int i = 1; i < procNum; i++) {
-                MPI_Recv(newfield + segmentSize * (i - 1), segmentSize, MPI_DOUBLE, i,
+                int modifierSize = (i > 1) ? 1 * w : 0; //send n+1 if procNum not the last
+
+                MPI_Recv(newfield + segmentSize * (i - 1) - modifierSize, (segmentSize + modifierSize) * sizeof(double),
+                         MPI_DOUBLE, i,
                          MESSAGE_SEGMENTSEND,
                          comm, &status);
+
             }
 
             memcpy(currentfield, newfield, w * h * sizeof(double));
             show(currentfield, w, h);
             usleep(100000);
         } else {
-            double *myField = calloc(segmentSize, sizeof(double));
-            double *tempmynewfield = calloc(segmentSize, sizeof(double));
-            MPI_Recv(myField, segmentSize, MPI_DOUBLE, 0, MESSAGE_INIT, comm, &status);
+            int modifierSize = (procID > 1) ? 2 * w : 0;
+            int modifierSendSize = (procID > 1 ) ? w : 0;
+            double *myField = calloc(modifierSize + segmentSize, sizeof(double));
+            double *tempmynewfield = calloc(modifierSize + segmentSize, sizeof(double));
+            MPI_Recv(myField, modifierSize + segmentSize, MPI_DOUBLE, 0, MESSAGE_INIT, comm, &status);
 
-            evolve(myField, tempmynewfield, 0, 0, w, h / (procNum - 1));
+            evolve(myField, tempmynewfield, 0, 1, w, 1+h / (procNum - 1), procID, procNum);
 
-            MPI_Send(&tempmynewfield[calcIndex(w, 0, 0)], segmentSize, MPI_DOUBLE, 0, MESSAGE_SEGMENTSEND, comm);
+            MPI_Send(tempmynewfield + modifierSendSize,  modifierSendSize + segmentSize, MPI_DOUBLE, 0, MESSAGE_SEGMENTSEND, comm);
         }
 
 
